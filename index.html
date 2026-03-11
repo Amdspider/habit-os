@@ -1,395 +1,198 @@
+```html
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>HabitOS Pro</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HabitOS V3</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 
 body{
-font-family:Arial;
+font-family:system-ui;
 background:#0f172a;
 color:white;
 margin:0;
-padding:20px;
+padding:15px;
 }
 
-h1{margin-bottom:10px}
-
-.container{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
-gap:20px;
+h1{
+text-align:center;
 }
 
 .card{
-background:rgba(255,255,255,0.05);
-padding:20px;
-border-radius:14px;
-}
-
-input,button{
-padding:6px;
-border-radius:6px;
-border:none;
-margin:3px;
+background:#1e293b;
+border-radius:16px;
+padding:15px;
+margin-bottom:15px;
+box-shadow:0 10px 20px rgba(0,0,0,0.3);
 }
 
 button{
 background:#22c55e;
+border:none;
+padding:8px 14px;
+border-radius:10px;
 color:white;
-cursor:pointer;
+font-weight:bold;
 }
 
-.habit{
-display:flex;
-justify-content:space-between;
-margin:6px 0;
+input{
+border:none;
+border-radius:8px;
+padding:6px;
+margin:3px;
 }
 
-.progress{
-background:#1e293b;
-height:10px;
-border-radius:10px;
-margin-top:10px;
+.hidden{
+display:none;
 }
 
-.bar{
-height:10px;
-background:#22c55e;
-width:0%;
-border-radius:10px;
-}
-
-canvas{
-background:#0b1220;
-border-radius:10px;
-padding:10px;
+.quote{
+color:#38bdf8;
+font-style:italic;
 }
 
 </style>
+
 </head>
 
 <body>
 
-<h1>HabitOS Pro</h1>
-
-<div class="container">
-
-<!-- HABITS -->
+<h1>HabitOS V3</h1>
 
 <div class="card">
-<h2>Habits</h2>
 
-<div id="habitList"></div>
+<h3>Habits</h3>
 
-<input id="newHabit" placeholder="New habit">
+<label>
+<input type="checkbox" id="gymCheck" onchange="toggleGym()"> Gym
+</label><br>
+
+<label>
+<input type="checkbox"> Coding
+</label><br>
+
+<label>
+<input type="checkbox"> Reading
+</label>
+
+<br><br>
+
+<input id="habitInput" placeholder="New habit">
 <button onclick="addHabit()">Add</button>
 
-<div class="progress">
-<div class="bar" id="habitBar"></div>
 </div>
 
-<p id="habitMsg"></p>
-</div>
+<div id="gymTracker" class="card hidden">
 
-<!-- GYM -->
+<h3>Gym Tracker</h3>
+
+Exercise
+<input id="exercise">
+
+Reps
+<input id="reps" type="number">
+
+Weight
+<input id="weight" type="number">
+
+<button onclick="saveWorkout()">Save</button>
+
+</div>
 
 <div class="card">
-<h2>Gym Tracker</h2>
 
-<input id="exercise" placeholder="Exercise">
+<h3>Motivation</h3>
 
-<input id="weight" placeholder="Weight">
+<div class="quote" id="quote"></div>
 
-<input id="reps" placeholder="Reps">
-
-<button onclick="addWorkout()">Add</button>
-
-<div id="workoutList"></div>
-
-<canvas id="gymChart"></canvas>
 </div>
-
-<!-- NUTRITION -->
 
 <div class="card">
-<h2>Nutrition</h2>
 
-<input id="food" placeholder="Food">
+<h3>Performance</h3>
 
-<input id="cal" placeholder="Calories">
-
-<input id="protein" placeholder="Protein">
-
-<button onclick="addFood()">Add</button>
-
-<p id="totalFood"></p>
-
-<canvas id="foodChart"></canvas>
-
-</div>
-
-<!-- WATER -->
-
-<div class="card">
-<h2>Water Intake</h2>
-
-<p id="waterDisplay">0 L</p>
-
-<button onclick="addWater(0.25)">+250ml</button>
-
-<button onclick="addWater(0.5)">+500ml</button>
-
-<canvas id="waterChart"></canvas>
-
-</div>
-
-<!-- ANALYTICS -->
-
-<div class="card">
-<h2>Performance Review</h2>
-
-<p id="review"></p>
-
-<canvas id="mainChart"></canvas>
-
-</div>
+<canvas id="chart"></canvas>
 
 </div>
 
 <script>
 
-let habits=JSON.parse(localStorage.getItem("habits"))||["Gym","Coding","Reading"]
+const quotes=[
 
-let habitData=JSON.parse(localStorage.getItem("habitData"))||{}
+"Dream is not that which you see while sleeping, it is something that does not let you sleep. — APJ Abdul Kalam",
 
-let workouts=JSON.parse(localStorage.getItem("workouts"))||[]
+"Excellence happens not by accident. It is a process. — APJ Abdul Kalam",
 
-let foods=JSON.parse(localStorage.getItem("foods"))||[]
+"If you want to shine like a sun, first burn like a sun. — APJ Abdul Kalam"
 
-let water=parseFloat(localStorage.getItem("water"))||0
+]
 
-let today=new Date().toISOString().slice(0,10)
+document.getElementById("quote").innerText=
+quotes[Math.floor(Math.random()*quotes.length)]
 
-if(!habitData[today]) habitData[today]=Array(habits.length).fill(false)
 
-function save(){
+function toggleGym(){
 
-localStorage.setItem("habits",JSON.stringify(habits))
-localStorage.setItem("habitData",JSON.stringify(habitData))
-localStorage.setItem("workouts",JSON.stringify(workouts))
-localStorage.setItem("foods",JSON.stringify(foods))
-localStorage.setItem("water",water)
+let gym=document.getElementById("gymCheck").checked
+let tracker=document.getElementById("gymTracker")
+
+if(gym){
+tracker.classList.remove("hidden")
+}else{
+tracker.classList.add("hidden")
+}
 
 }
 
-function renderHabits(){
-
-let list=document.getElementById("habitList")
-
-list.innerHTML=""
-
-habits.forEach((h,i)=>{
-
-let div=document.createElement("div")
-
-div.className="habit"
-
-let label=document.createElement("span")
-
-label.innerText=h
-
-let box=document.createElement("input")
-
-box.type="checkbox"
-
-box.checked=habitData[today][i]
-
-box.onchange=()=>{
-
-habitData[today][i]=box.checked
-
-save()
-
-update()
-
-}
-
-div.appendChild(label)
-
-div.appendChild(box)
-
-list.appendChild(div)
-
-})
-
-}
 
 function addHabit(){
 
-let val=document.getElementById("newHabit").value
+let name=document.getElementById("habitInput").value
 
-if(!val)return
+if(name==="")return
 
-habits.push(val)
+let label=document.createElement("label")
 
-habitData[today].push(false)
+label.innerHTML="<input type='checkbox'> "+name
 
-save()
-
-renderHabits()
+document.querySelector(".card").appendChild(label)
 
 }
 
-function update(){
 
-let done=habitData[today].filter(x=>x).length
+function saveWorkout(){
 
-let pct=done/habits.length*100
+let weight=document.getElementById("weight").value
 
-document.getElementById("habitBar").style.width=pct+"%"
+if(weight==="")return
 
-let msg=""
+chart.data.datasets[0].data.push(weight)
 
-if(pct>70) msg="Great discipline."
-
-else if(pct<40) msg="You are falling behind."
-
-document.getElementById("habitMsg").innerText=msg
+chart.update()
 
 }
 
-function addWorkout(){
 
-let ex=document.getElementById("exercise").value
+let ctx=document.getElementById("chart")
 
-let w=document.getElementById("weight").value
-
-let r=document.getElementById("reps").value
-
-workouts.push({ex,w,r})
-
-save()
-
-renderWorkouts()
-
-}
-
-function renderWorkouts(){
-
-let list=document.getElementById("workoutList")
-
-list.innerHTML=""
-
-workouts.forEach(w=>{
-
-let p=document.createElement("p")
-
-p.innerText=`${w.ex} - ${w.w}kg x ${w.r}`
-
-list.appendChild(p)
-
-})
-
-}
-
-function addFood(){
-
-let f=document.getElementById("food").value
-
-let c=parseInt(document.getElementById("cal").value)||0
-
-let p=parseInt(document.getElementById("protein").value)||0
-
-foods.push({f,c,p})
-
-save()
-
-renderFood()
-
-}
-
-function renderFood(){
-
-let cal=0
-
-let protein=0
-
-foods.forEach(f=>{
-
-cal+=f.c
-protein+=f.p
-
-})
-
-document.getElementById("totalFood").innerText=
-
-`Calories: ${cal} | Protein: ${protein}g`
-
-}
-
-function addWater(x){
-
-water+=x
-
-save()
-
-document.getElementById("waterDisplay").innerText=
-
-water+" L"
-
-}
-
-function createCharts(){
-
-new Chart(document.getElementById("gymChart"),{
-
-type:"line",
-
-data:{labels:["Week1","Week2","Week3"],datasets:[{label:"Gym Progress",data:[10,15,20]}]}
-
-})
-
-new Chart(document.getElementById("foodChart"),{
-
-type:"bar",
-
-data:{labels:["Calories","Protein"],datasets:[{data:[2000,120]}]}
-
-})
-
-new Chart(document.getElementById("waterChart"),{
-
-type:"line",
-
-data:{labels:["Mon","Tue","Wed"],datasets:[{data:[2,2.5,3]}]}
-
-})
-
-new Chart(document.getElementById("mainChart"),{
-
+let chart=new Chart(ctx,{
 type:"radar",
-
-data:{labels:["Habits","Gym","Nutrition","Water"],datasets:[{data:[80,70,60,75]}]}
-
-})
-
+data:{
+labels:["Habits","Gym","Reading","Coding","Focus"],
+datasets:[{
+label:"Performance",
+data:[60,50,70,80,65],
+backgroundColor:"rgba(34,197,94,0.3)"
+}]
 }
-
-renderHabits()
-
-renderWorkouts()
-
-renderFood()
-
-update()
-
-createCharts()
+})
 
 </script>
 
 </body>
 </html>
+```
